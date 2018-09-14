@@ -1099,7 +1099,7 @@ int ks8851_probe_common(struct net_device *netdev, struct device *dev,
 	ks->gpio = gpio;
 	if (gpio_is_valid(gpio)) {
 		ret = devm_gpio_request_one(dev, gpio,
-					    GPIOF_OUT_INIT_LOW, "ks8851_rst_n");
+					    GPIOF_OUT_INIT_HIGH, "ks8851_rst");
 		if (ret) {
 			dev_err(dev, "reset gpio request failed\n");
 			return ret;
@@ -1131,8 +1131,9 @@ int ks8851_probe_common(struct net_device *netdev, struct device *dev,
 	}
 
 	if (gpio_is_valid(gpio)) {
-		usleep_range(10000, 11000);
-		gpio_set_value(gpio, 1);
+		msleep(25);
+		gpio_set_value(gpio, 0);
+		msleep(25);
 	}
 
 	spin_lock_init(&ks->statelock);
