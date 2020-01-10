@@ -3626,10 +3626,8 @@ void register_console(struct console *newcon)
 	 * the real console are the same physical device, it's annoying to
 	 * see the beginning boot messages twice
 	 */
-	if (bootcon_enabled &&
-	    ((newcon->flags & (CON_CONSDEV | CON_BOOT)) == CON_CONSDEV)) {
+	if (bootcon_enabled && !(newcon->flags & CON_BOOT))
 		newcon->flags &= ~CON_PRINTBUFFER;
-	}
 
 	/*
 	 *	Put this console in the list - keep the
@@ -3680,9 +3678,7 @@ void register_console(struct console *newcon)
 	 * went to the bootconsole (that they do not see on the real console)
 	 */
 	con_printk(KERN_INFO, newcon, "enabled\n");
-	if (bootcon_enabled &&
-	    ((newcon->flags & (CON_CONSDEV | CON_BOOT)) == CON_CONSDEV) &&
-	    !keep_bootcon) {
+	if (bootcon_enabled && !(newcon->flags & CON_BOOT) && !keep_bootcon) {
 		for_each_console(con)
 			if (con->flags & CON_BOOT)
 				unregister_console(con);
