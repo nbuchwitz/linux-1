@@ -115,7 +115,7 @@ modname = $(subst $(space),:,$(__modname))
 modfile = $(addprefix $(obj)/,$(__modname))
 
 # target with $(obj)/ and its suffix stripped
-target-stem = $(basename $(patsubst $(obj)/%,%,$@))
+target-stem = $(basename $(notdir $@))
 
 # These flags are needed for modversions and compiling, so we define them here
 # $(modname_flags) defines KBUILD_MODNAME as the name of the module it will
@@ -282,7 +282,7 @@ endif # CONFIG_OBJTOOL
 define multi_depend
 $(foreach m, $1, \
 	$(eval $m: \
-	$(addprefix $(obj)/, $(call suffix-search, $(patsubst $(obj)/%,%,$m), $2, $3))))
+	$(addprefix $(dir $m), $(call suffix-search, $(notdir $m), $2, $3))))
 endef
 
 # Copy a file
