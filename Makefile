@@ -744,6 +744,11 @@ endif
 
 export KBUILD_MODULES KBUILD_BUILTIN
 
+# Decide whether to install the build environment for external modules.
+ifneq ($(filter kbuild_install,$(MAKECMDGOALS)),)
+  export KBUILD_INSTALL=y
+endif
+
 ifdef need-config
 include include/config/auto.conf
 endif
@@ -1159,6 +1164,12 @@ export	INSTALL_PATH ?= /boot
 # an argument if needed. Otherwise it defaults to the kernel install path
 #
 export INSTALL_DTBS_PATH ?= $(INSTALL_PATH)/dtbs/$(KERNELRELEASE)
+
+#
+# INSTALL_KBUILD_PATH specifies where to install the build environment for
+# external modules.  Can be overridden by passing it as an argument.
+#
+export INSTALL_KBUILD_PATH = /usr/src/linux-headers-$(KERNELVERSION)
 
 #
 # INSTALL_MOD_PATH specifies a prefix to MODLIB for module directory
@@ -1694,7 +1705,9 @@ help:
 	@echo  '  kernelversion	  - Output the version stored in Makefile (use with make -s)'
 	@echo  '  image_name	  - Output the image name (use with make -s)'
 	@echo  '  headers_install - Install sanitised kernel headers to INSTALL_HDR_PATH'; \
-	 echo  '                    (default: $(INSTALL_HDR_PATH))'; \
+	 echo  '                    (default: $(INSTALL_HDR_PATH))'
+	@echo  '  kbuild_install  - Install module build environment to INSTALL_KBUILD_PATH'; \
+	 echo  '                    (default: $(INSTALL_KBUILD_PATH))'; \
 	 echo  ''
 	@echo  'Static analysers:'
 	@echo  '  checkstack      - Generate a list of stack hogs'
@@ -1855,6 +1868,16 @@ rustfmtcheck: rustfmt
 PHONY += rust-analyzer
 rust-analyzer:
 	$(Q)$(MAKE) $(build)=rust $@
+
+
+# Module build environment target
+# ---------------------------------------------------------------------------
+PHONY += kbuild_install
+kbuild_install: asm-generic
+	$(Q)$(MAKE) $(build)=scripts/basic
+	$(Q)$(MAKE) $(build)=scripts/mod
+	$(Q)$(MAKE) $(build)=scripts
+
 
 # Misc
 # ---------------------------------------------------------------------------
