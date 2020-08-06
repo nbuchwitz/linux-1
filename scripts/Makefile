@@ -37,6 +37,9 @@ hostprogs += unifdef
 # The module linker script is preprocessed on demand
 targets += module.lds
 
+extmodprogs += recordmcount
+extmodprogs += sign-file
+
 subdir-$(CONFIG_GCC_PLUGINS) += gcc-plugins
 subdir-$(CONFIG_MODVERSIONS) += genksyms
 subdir-$(CONFIG_SECURITY_SELINUX) += selinux
