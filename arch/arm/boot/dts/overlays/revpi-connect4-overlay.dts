@@ -23,6 +23,11 @@
 				brcm,pins     = <2 3>;
 				brcm,function = <BCM2835_FSEL_ALT5>;
 			};
+			i2c6_pins: i2c6_pins {
+				/* SDA (ID_SD), SCL (ID_SC)*/
+				brcm,pins     = <0 1>;
+				brcm,function = <BCM2835_FSEL_ALT5>;
+			};
 		};
 	};
 
@@ -59,6 +64,27 @@
 				/* 100kHz, 400kHz */
 				compatible = "nxp,pcf2129";
 				reg = <0x51>;
+				status = "okay";
+			};
+		};
+	};
+
+	/* I2C6 */
+	fragment@3 {
+		target = <&i2c6>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c6_pins>;
+			clock-frequency = <400000>;
+			status = "okay";
+
+			eeprom: eeprom@50 {
+				/* 100kHz, 400kHz or 1MHz */
+				compatible = "atmel,24c256";
+				reg = <0x50>;
+				pagesize = <64>;
 				status = "okay";
 			};
 		};
