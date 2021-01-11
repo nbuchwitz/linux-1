@@ -28,6 +28,13 @@
 				brcm,pins     = <0 1>;
 				brcm,function = <BCM2835_FSEL_ALT5>;
 			};
+			spi6_pins: spi6_pins {
+				/* MISO, MOSI, SCLK */
+				brcm,pins     = <19 20 21>;
+				brcm,function = <BCM2835_FSEL_ALT3>;
+			};
+			spi6_cs_pins: spi6_cs_pins {
+			};
 		};
 	};
 
@@ -87,6 +94,18 @@
 				pagesize = <64>;
 				status = "okay";
 			};
+		};
+	};
+
+	/* SPI6 */
+	fragment@4 {
+		target = <&spi6>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&spi6_pins>, <&spi6_cs_pins>;
+			status = "okay";
 		};
 	};
 };
