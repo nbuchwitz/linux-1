@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /dts-v1/;
 /plugin/;
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/bcm2835.h>
 
 / {
 	compatible = "brcm,bcm2711";
@@ -9,6 +11,56 @@
 		target-path = "/";
 		__overlay__ {
 			compatible = "kunbus,revpi-connect4", "brcm,bcm2711";
+		};
+	};
+
+	/* PINMUX */
+	fragment@1 {
+		target = <&gpio>;
+		__overlay__ {
+			i2c3_pins: i2c3_pins {
+				/* SDA, SCL */
+				brcm,pins     = <2 3>;
+				brcm,function = <BCM2835_FSEL_ALT5>;
+			};
+		};
+	};
+
+	/* I2C3 */
+	fragment@2 {
+		target = <&i2c3>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c3_pins>;
+			clock-frequency = <400000>;
+			status = "okay";
+
+			expander_core: gpio@20 {
+				/* 100kHz, 400kHz */
+				compatible = "nxp,pcal6416";
+				reg = <0x20>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				status = "okay";
+			};
+
+			expander_power: gpio@21 {
+				/* 100kHz, 400kHz */
+				compatible = "nxp,pcal6416";
+				reg = <0x21>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				status = "okay";
+			};
+
+			rtc@51 {
+				/* 100kHz, 400kHz */
+				compatible = "nxp,pcf2129";
+				reg = <0x51>;
+				status = "okay";
+			};
 		};
 	};
 };
