@@ -34,6 +34,9 @@
 				brcm,function = <BCM2835_FSEL_ALT3>;
 			};
 			spi6_cs_pins: spi6_cs_pins {
+				/* ksz9897 */
+				brcm,pins     = <16>;
+				brcm,function = <BCM2835_FSEL_GPIO_OUT>;
 			};
 		};
 	};
@@ -105,7 +108,42 @@
 			#size-cells = <0>;
 			pinctrl-names = "default";
 			pinctrl-0 = <&spi6_pins>, <&spi6_cs_pins>;
+			cs-gpios = <&gpio 16 GPIO_ACTIVE_LOW>;
 			status = "okay";
+
+			ksz9897: ksz9897@0 {
+				compatible = "microchip,ksz9897";
+				reg = <0>;
+				spi-max-frequency = <50000000>;
+				spi-cpha;
+				spi-cpol;
+				reset-gpios = <&expander_core 13 GPIO_ACTIVE_LOW>;
+				status = "okay";
+
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
+					/* PORT 1 */
+					port@0 {
+						reg = <0>;
+						label = "cpu";
+						ethernet = <&genet>;
+					};
+					/* PORT 2 */
+					port@1 {
+						reg = <1>;
+						label = "pileft";
+					};
+					/* PORT 3 */
+					port@2 {
+						reg = <2>;
+						label = "piright";
+					};
+					/*
+					 * PORT 4-7 unused
+					 */
+				};
+			};
 		};
 	};
 };
