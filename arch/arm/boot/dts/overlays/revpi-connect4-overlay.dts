@@ -2,6 +2,7 @@
 /dts-v1/;
 /plugin/;
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
 #include <dt-bindings/pinctrl/bcm2835.h>
 
 / {
@@ -34,9 +35,14 @@
 				brcm,function = <BCM2835_FSEL_ALT3>;
 			};
 			spi6_cs_pins: spi6_cs_pins {
-				/* ksz9897 */
-				brcm,pins     = <16>;
+				/* ksz9897, tpm */
+				brcm,pins     = <16 18>;
 				brcm,function = <BCM2835_FSEL_GPIO_OUT>;
+			};
+			tpm_pins: tpm_pins {
+				/* IRQ */
+				brcm,pins     = <10>;
+				brcm,function = <BCM2835_FSEL_GPIO_IN>;
 			};
 		};
 	};
@@ -108,7 +114,8 @@
 			#size-cells = <0>;
 			pinctrl-names = "default";
 			pinctrl-0 = <&spi6_pins>, <&spi6_cs_pins>;
-			cs-gpios = <&gpio 16 GPIO_ACTIVE_LOW>;
+			cs-gpios = <&gpio 16 GPIO_ACTIVE_LOW>,
+				   <&gpio 18 GPIO_ACTIVE_LOW>;
 			status = "okay";
 
 			ksz9897: ksz9897@0 {
@@ -143,6 +150,18 @@
 					 * PORT 4-7 unused
 					 */
 				};
+			};
+
+			tpm: tpm@1 {
+				compatible = "infineon,slb9670";
+				pinctrl-names = "default";
+				pinctrl-0 = <&tpm_pins>;
+				reg = <1>;
+				spi-max-frequency = <1000000>;
+				interrupt-parent = <&gpio>;
+				#interrupt-cells = <2>;
+				interrupts = <10 IRQ_TYPE_LEVEL_LOW>;
+				status = "okay";
 			};
 		};
 	};
