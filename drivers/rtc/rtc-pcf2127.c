@@ -23,6 +23,7 @@
 #include <linux/regmap.h>
 
 #define PCF2127_REG_CTRL1       (0x00)  /* Control Register 1 */
+#define PCF2127_BIT_CTRL1_POR_OVRD		BIT(3)
 #define PCF2127_REG_CTRL2       (0x01)  /* Control Register 2 */
 
 #define PCF2127_REG_CTRL3       (0x02)  /* Control Register 3 */
@@ -255,6 +256,13 @@ static int pcf2127_probe(struct device *dev, struct regmap *regmap,
 
 		ret = rtc_nvmem_register(pcf2127->rtc, &nvmem_cfg);
 	}
+
+	/*
+	 * The "Power-On Reset Override" facility prevents the RTC to do a reset
+	 * after power on. For normal operation the PORO must be disabled.
+	 */
+	regmap_clear_bits(pcf2127->regmap, PCF2127_REG_CTRL1,
+				PCF2127_BIT_CTRL1_POR_OVRD);
 
 	return ret;
 }
