@@ -15,6 +15,7 @@
  */
 #include <linux/init.h>
 #include <linux/of.h>
+#include <linux/of_net.h>
 #include <linux/of_irq.h>
 
 #include <defs.h>
@@ -28,6 +29,7 @@ void brcmf_of_probe(struct device *dev, enum brcmf_bus_type bus_type,
 {
 	struct brcmfmac_sdio_pd *sdio = &settings->bus.sdio;
 	struct device_node *np = dev->of_node;
+	const unsigned char *mac_addr;
 	int irq;
 	u32 irqf;
 	u32 val;
@@ -38,6 +40,10 @@ void brcmf_of_probe(struct device *dev, enum brcmf_bus_type bus_type,
 
 	if (of_property_read_u32(np, "brcm,drive-strength", &val) == 0)
 		sdio->drive_strength = val;
+
+	mac_addr = of_get_mac_address(np);
+	if (mac_addr && is_valid_ether_addr(mac_addr))
+		ether_addr_copy(settings->mac_addr, mac_addr);
 
 	/* make sure there are interrupts defined in the node */
 	if (!of_find_property(np, "interrupts", NULL))
