@@ -326,6 +326,7 @@
 			wlan0: wifi@1 {
 				reg = <1>;
 				compatible = "brcm,bcm4329-fmac";
+				local-mac-address = [00 00 00 00 00 00];
 				status = "okay";
 			};
 		};
@@ -370,6 +371,8 @@
 		eth0_mac_lo = <&eth0>,"local-mac-address;4";
 		eth1_mac_hi = <&eth1>,"local-mac-address:0";
 		eth1_mac_lo = <&eth1>,"local-mac-address;4";
+		wlan0_mac_hi = <&wlan0>,"local-mac-address:0";
+		wlan0_mac_lo = <&wlan0>,"local-mac-address;4";
 		bootargs = <&chosen_overlay>,"bootargs";
 	};
 };
