@@ -1214,6 +1214,8 @@ static int brcmf_bus_started(struct brcmf_pub *drvr, struct cfg80211_ops *ops)
 	if (ret < 0)
 		goto fail;
 
+	ether_addr_copy(ifp->mac_addr, drvr->settings->mac_addr);
+
 	/* Bus is ready, do any initialization */
 	ret = brcmf_c_preinit_dcmds(ifp);
 	if (ret < 0)

@@ -15,6 +15,7 @@ Optional properties:
 	When not specified the device will use in-band SDIO interrupts.
  - interrupt-names : name of the out-of-band interrupt, which must be set
 	to "host-wake".
+ - local-mac-address : see ethernet.txt in the parent directory
 
 Example:
 
@@ -34,5 +35,6 @@ mmc3: mmc@1c12000 {
 		interrupt-parent = <&pio>;
 		interrupts = <10 8>; /* PH10 / EINT10 */
 		interrupt-names = "host-wake";
+		local-mac-address = [00 00 00 00 00 00];
 	};
 };
