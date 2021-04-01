@@ -39,6 +39,8 @@
 /* CLKOUT control register */
 #define PCF2127_REG_CLKOUT	(0x0f)
 #define PCF2127_BIT_CLKOUT_OTPR		BIT(5)
+#define PCF2127_REG_TSC		(0x12)
+#define PCF2127_BIT_TSC_TSOFF		BIT(6)
 /* the pcf2127 has 512 bytes nvmem, pcf2129 doesn't */
 #define PCF2127_REG_RAM_addr_MSB       0x1a
 #define PCF2127_REG_RAM_wrt_cmd        0x1c
@@ -279,6 +281,9 @@ static int pcf2127_probe(struct device *dev, struct regmap *regmap,
 
 		msleep(100);
 	}
+
+	/* Disable timestamping, might save up to 0.2µA */
+	regmap_set_bits(pcf2127->regmap, PCF2127_REG_TSC, PCF2127_BIT_TSC_TSOFF);
 
 	return ret;
 }
