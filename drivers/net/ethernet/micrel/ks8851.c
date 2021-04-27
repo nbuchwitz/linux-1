@@ -1562,6 +1562,8 @@ static int ks8851_probe(struct spi_device *spi)
 	if (IS_ERR(ks->vdd_reg)) {
 		ret = PTR_ERR(ks->vdd_reg);
 		goto err_reg;
+	} else if (ks->vdd_reg) {
+		usleep_range(10000, 11000);
 	}
 
 	ret = regulator_enable(ks->vdd_reg);
