@@ -98,6 +98,18 @@
 				brcm,pins     = <10>;
 				brcm,function = <BCM2835_FSEL_GPIO_IN>;
 			};
+			rs485_pins: rs485_pins {
+				/* TX RX TX_EN TERM */
+				brcm,pins     = <12 13 15 14>;
+				brcm,function = <BCM2835_FSEL_ALT4
+				                 BCM2835_FSEL_ALT4
+				                 BCM2835_FSEL_ALT4
+				                 BCM2835_FSEL_GPIO_OUT>;
+				brcm,pull     = <BCM2835_PUD_OFF
+				                 BCM2835_PUD_OFF
+				                 BCM2835_PUD_DOWN
+				                 BCM2835_PUD_DOWN>;
+			};
 		};
 	};
 
@@ -219,4 +231,16 @@
 			};
 		};
 	};
+
+	fragment@5 {
+		target = <&uart5>;
+		__overlay__ {
+			pinctrl-names = "default";
+			pinctrl-0 = <&rs485_pins>;
+			status = "okay";
+			linux,rs485-enabled-at-boot-time;
+			rs485-term-gpios = <&gpio 14 GPIO_ACTIVE_LOW>;
+		};
+	};
+	
 };
