@@ -110,6 +110,18 @@
 				                 BCM2835_PUD_DOWN
 				                 BCM2835_PUD_DOWN>;
 			};
+			pb_uart_left_pins: pb_uart_left_pins {
+				/* TX RX TX_EN */
+				brcm,pins     = <4 5 7>;
+				brcm,function = <BCM2835_FSEL_ALT4>;
+				brcm,pull     = <BCM2835_PUD_OFF>;
+			};
+			pb_uart_right_pins: pb_uart_right_pins {
+				/* TX RX TX_EN */
+				brcm,pins     = <8 9 11>;
+				brcm,function = <BCM2835_FSEL_ALT4>;
+				brcm,pull     = <BCM2835_PUD_OFF>;
+			};
 		};
 	};
 
@@ -243,4 +255,24 @@
 		};
 	};
 	
+
+	fragment@6 {
+		target = <&uart3>;
+		__overlay__ {
+			pinctrl-names = "default";
+			pinctrl-0 = <&pb_uart_left_pins>;
+			status = "okay";
+			linux,rs485-enabled-at-boot-time;
+		};
+	};
+
+	fragment@7 {
+		target = <&uart4>;
+		__overlay__ {
+			pinctrl-names = "default";
+			pinctrl-0 = <&pb_uart_right_pins>;
+			status = "okay";
+			linux,rs485-enabled-at-boot-time;
+		};
+	};
 };
