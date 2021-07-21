@@ -1738,6 +1738,15 @@ static int dsa_slave_phy_setup(struct net_device *slave_dev)
 	return ret;
 }
 
+	const struct dsa_switch *ds = dp->ds;
+
+	slave->features = master->vlan_features | NETIF_F_HW_TC;
+	if (ds->ops->port_vlan_add && ds->ops->port_vlan_del)
+		slave->features |= NETIF_F_HW_VLAN_CTAG_FILTER;
+	slave->hw_features |= NETIF_F_HW_TC;
+	slave->features |= NETIF_F_LLTX;
+	if (slave->needed_tailroom)
+		slave->features &= ~(NETIF_F_SG | NETIF_F_FRAGLIST);
 static struct lock_class_key dsa_slave_netdev_xmit_lock_key;
 static void dsa_slave_set_lockdep_class_one(struct net_device *dev,
 					    struct netdev_queue *txq,
@@ -1812,11 +1821,6 @@ int dsa_slave_create(struct dsa_port *port)
 	if (slave_dev == NULL)
 		return -ENOMEM;
 
-	slave_dev->features = master->vlan_features | NETIF_F_HW_TC;
-	if (ds->ops->port_vlan_add && ds->ops->port_vlan_del)
-		slave_dev->features |= NETIF_F_HW_VLAN_CTAG_FILTER;
-	slave_dev->hw_features |= NETIF_F_HW_TC;
-	slave_dev->features |= NETIF_F_LLTX;
 	slave_dev->ethtool_ops = &dsa_slave_ethtool_ops;
 	if (!IS_ERR_OR_NULL(port->mac))
 		ether_addr_copy(slave_dev->dev_addr, port->mac);
