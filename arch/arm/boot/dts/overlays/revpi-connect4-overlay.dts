@@ -159,6 +159,7 @@
 				compatible = "nxp,pcf2129";
 				reg = <0x51>;
 				status = "okay";
+				reset-source;
 			};
 		};
 	};
