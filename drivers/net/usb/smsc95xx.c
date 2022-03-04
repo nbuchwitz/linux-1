@@ -605,9 +605,13 @@ static void smsc95xx_int_work(struct work_struct *work)
 	struct usbnet *dev = netdev_priv(netdev);
 	int ret;
 
+	phy_clear_interrupt(phydev);
+
 	ret = smsc95xx_write_reg(dev, INT_STS, INT_STS_CLEAR_ALL_);
 	if (ret < 0)
 		netdev_warn(netdev, "Error acknowledging interrupts\n");
+
+	phy_mac_interrupt(phydev);
 }
 
 static void smsc95xx_status(struct usbnet *dev, struct urb *urb)
@@ -1179,8 +1183,8 @@ static int smsc95xx_bind(struct usbnet *dev, struct usb_interface *intf)
 {
 	struct smsc95xx_priv *pdata;
 	bool is_internal_phy;
+	int ret, i;
 	u32 val;
-	int ret;
 
 	printk(KERN_INFO SMSC_CHIPNAME " v" SMSC_DRIVER_VERSION "\n");
 
@@ -1243,6 +1247,9 @@ static int smsc95xx_bind(struct usbnet *dev, struct usb_interface *intf)
 
 	snprintf(pdata->mdiobus->id, ARRAY_SIZE(pdata->mdiobus->id),
 		 "usb-%03d:%03d", dev->udev->bus->busnum, dev->udev->devnum);
+
+	for (i = 0; i < PHY_MAX_ADDR; i++)
+		pdata->mdiobus->irq[i] = PHY_MAC_INTERRUPT;
 
 	ret = mdiobus_register(pdata->mdiobus);
 	if (ret) {
@@ -1324,12 +1331,14 @@ static void smsc95xx_unbind(struct usbnet *dev, struct usb_interface *intf)
 static int smsc95xx_start_phy(struct usbnet *dev)
 {
 	phy_start(dev->net->phydev);
+	phy_enable_interrupts(dev->net->phydev);
 
 	return 0;
 }
 
 static int smsc95xx_stop(struct usbnet *dev)
 {
+	phy_disable_interrupts(dev->net->phydev);
 	phy_stop(dev->net->phydev);
 
 	return 0;
@@ -1339,29 +1348,6 @@ static u32 smsc_crc(const u8 *buffer, size_t len, int filter)
 {
 	u32 crc = bitrev16(crc16(0xFFFF, buffer, len));
 	return crc << ((filter % 2) * 16);
-}
-
-static int smsc95xx_enable_phy_wakeup_interrupts(struct usbnet *dev, u16 mask)
-{
-	int ret;
-
-	netdev_dbg(dev->net, "enabling PHY wakeup interrupts\n");
-
-	/* read to clear */
-	ret = smsc95xx_mdio_read_nopm(dev, PHY_INT_SRC);
-	if (ret < 0)
-		return ret;
-
-	/* enable interrupt source */
-	ret = smsc95xx_mdio_read_nopm(dev, PHY_INT_MASK);
-	if (ret < 0)
-		return ret;
-
-	ret |= mask;
-
-	smsc95xx_mdio_write_nopm(dev, PHY_INT_MASK, ret);
-
-	return 0;
 }
 
 static int smsc95xx_link_ok_nopm(struct usbnet *dev)
@@ -1530,7 +1516,6 @@ static int smsc95xx_enter_suspend3(struct usbnet *dev)
 static int smsc95xx_autosuspend(struct usbnet *dev, u32 link_up)
 {
 	struct smsc95xx_priv *pdata = dev->driver_priv;
-	int ret;
 
 	if (!netif_running(dev->net)) {
 		/* interface is ifconfig down so fully power down hw */
@@ -1549,25 +1534,8 @@ static int smsc95xx_autosuspend(struct usbnet *dev, u32 link_up)
 		}
 
 		netdev_dbg(dev->net, "autosuspend entering SUSPEND1\n");
-
-		/* enable PHY wakeup events for if cable is attached */
-		ret = smsc95xx_enable_phy_wakeup_interrupts(dev,
-			PHY_INT_MASK_ANEG_COMP_);
-		if (ret < 0) {
-			netdev_warn(dev->net, "error enabling PHY wakeup ints\n");
-			return ret;
-		}
-
 		netdev_info(dev->net, "entering SUSPEND1 mode\n");
 		return smsc95xx_enter_suspend1(dev);
-	}
-
-	/* enable PHY wakeup events so we remote wakeup if cable is pulled */
-	ret = smsc95xx_enable_phy_wakeup_interrupts(dev,
-		PHY_INT_MASK_LINK_DOWN_);
-	if (ret < 0) {
-		netdev_warn(dev->net, "error enabling PHY wakeup ints\n");
-		return ret;
 	}
 
 	netdev_dbg(dev->net, "autosuspend entering SUSPEND3\n");
@@ -1635,13 +1603,6 @@ static int smsc95xx_suspend(struct usb_interface *intf, pm_message_t message)
 	}
 
 	if (pdata->wolopts & WAKE_PHY) {
-		ret = smsc95xx_enable_phy_wakeup_interrupts(dev,
-			(PHY_INT_MASK_ANEG_COMP_ | PHY_INT_MASK_LINK_DOWN_));
-		if (ret < 0) {
-			netdev_warn(dev->net, "error enabling PHY wakeup ints\n");
-			goto done;
-		}
-
 		/* if link is down then configure EDPD and enter SUSPEND1,
 		 * otherwise enter SUSPEND0 below
 		 */
