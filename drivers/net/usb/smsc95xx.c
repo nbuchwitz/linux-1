@@ -58,6 +58,7 @@ struct smsc95xx_priv {
 	u32 hash_lo;
 	u32 wolopts;
 	spinlock_t mac_cr_lock;
+	struct work_struct int_work;
 	u8 features;
 	u8 suspend_flags;
 	struct mii_bus *mdiobus;
@@ -568,15 +569,11 @@ static int smsc95xx_phy_update_flowcontrol(struct usbnet *dev)
 	return smsc95xx_write_reg(dev, AFC_CFG, afc_cfg);
 }
 
-static int smsc95xx_link_reset(struct usbnet *dev)
+static void smsc95xx_mac_update_fullduplex(struct usbnet *dev)
 {
 	struct smsc95xx_priv *pdata = dev->driver_priv;
 	unsigned long flags;
 	int ret;
-
-	ret = smsc95xx_write_reg(dev, INT_STS, INT_STS_CLEAR_ALL_);
-	if (ret < 0)
-		return ret;
 
 	spin_lock_irqsave(&pdata->mac_cr_lock, flags);
 	if (pdata->phydev->duplex != DUPLEX_FULL) {
@@ -589,18 +586,33 @@ static int smsc95xx_link_reset(struct usbnet *dev)
 	spin_unlock_irqrestore(&pdata->mac_cr_lock, flags);
 
 	ret = smsc95xx_write_reg(dev, MAC_CR, pdata->mac_cr);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) {
+		netdev_warn(dev->net, "Error updating MAC full duplex mode\n");
+		return;
+	}
 
 	ret = smsc95xx_phy_update_flowcontrol(dev);
 	if (ret < 0)
 		netdev_warn(dev->net, "Error updating PHY flow control\n");
+}
 
-	return ret;
+static void smsc95xx_int_work(struct work_struct *work)
+{
+	struct smsc95xx_priv *pdata =
+		container_of(work, struct smsc95xx_priv, int_work);
+	struct phy_device *phydev = pdata->phydev;
+	struct net_device *netdev = phydev->attached_dev;
+	struct usbnet *dev = netdev_priv(netdev);
+	int ret;
+
+	ret = smsc95xx_write_reg(dev, INT_STS, INT_STS_CLEAR_ALL_);
+	if (ret < 0)
+		netdev_warn(netdev, "Error acknowledging interrupts\n");
 }
 
 static void smsc95xx_status(struct usbnet *dev, struct urb *urb)
 {
+	struct smsc95xx_priv *pdata = dev->driver_priv;
 	u32 intdata;
 
 	if (urb->actual_length != 4) {
@@ -613,7 +625,7 @@ static void smsc95xx_status(struct usbnet *dev, struct urb *urb)
 	netif_dbg(dev, link, dev->net, "intdata: 0x%08X\n", intdata);
 
 	if (intdata & INT_ENP_PHY_INT_)
-		usbnet_defer_kevent(dev, EVENT_LINK_RESET);
+		queue_work(system_highpri_wq, &pdata->int_work);
 	else
 		netdev_warn(dev->net, "unexpected interrupt, intdata=0x%08X\n",
 			    intdata);
@@ -1159,6 +1171,7 @@ static void smsc95xx_handle_link_change(struct net_device *net)
 	struct usbnet *dev = netdev_priv(net);
 
 	phy_print_status(net->phydev);
+	smsc95xx_mac_update_fullduplex(dev);
 	usbnet_defer_kevent(dev, EVENT_LINK_CHANGE);
 }
 
@@ -1184,6 +1197,7 @@ static int smsc95xx_bind(struct usbnet *dev, struct usb_interface *intf)
 	dev->driver_priv = pdata;
 
 	spin_lock_init(&pdata->mac_cr_lock);
+	INIT_WORK(&pdata->int_work, smsc95xx_int_work);
 
 	/* LAN95xx devices do not alter the computed checksum of 0 to 0xffff.
 	 * RFC 2460, ipv6 UDP calculated checksum yields a result of zero must
@@ -1293,7 +1307,13 @@ free_pdata:
 static void smsc95xx_unbind(struct usbnet *dev, struct usb_interface *intf)
 {
 	struct smsc95xx_priv *pdata = dev->driver_priv;
+	int ret;
 
+	ret = smsc95xx_write_reg(dev, INT_EP_CTL, 0);
+	if (ret < 0)
+		netdev_warn(dev->net, "Error disabling interrupts\n");
+
+	cancel_work_sync(&pdata->int_work);
 	phy_disconnect(dev->net->phydev);
 	mdiobus_unregister(pdata->mdiobus);
 	mdiobus_free(pdata->mdiobus);
@@ -2067,7 +2087,6 @@ static const struct driver_info smsc95xx_info = {
 	.description	= "smsc95xx USB 2.0 Ethernet",
 	.bind		= smsc95xx_bind,
 	.unbind		= smsc95xx_unbind,
-	.link_reset	= smsc95xx_link_reset,
 	.reset		= smsc95xx_reset,
 	.check_connect	= smsc95xx_start_phy,
 	.stop		= smsc95xx_stop,
