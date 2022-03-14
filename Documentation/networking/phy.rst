@@ -345,6 +345,18 @@ pointers.
 A convenience function to print out the PHY status neatly.
 ::
 
+ int phy_clear_interrupt(struct phy_device *phydev);
+
+Clear the PHY's interrupt.
+::
+
+ int phy_enable_interrupts(struct phy_device *phydev);
+ int phy_disable_interrupts(struct phy_device *phydev);
+
+Functions which enable/disable PHY interrupts, clearing them
+before and after, respectively.
+::
+
  void phy_request_interrupt(struct phy_device *phydev);
 
 Requests the IRQ for the PHY interrupts.

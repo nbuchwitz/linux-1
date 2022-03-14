@@ -122,13 +122,14 @@ EXPORT_SYMBOL(phy_print_status);
  *
  * Returns 0 on success or < 0 on error.
  */
-static int phy_clear_interrupt(struct phy_device *phydev)
+int phy_clear_interrupt(struct phy_device *phydev)
 {
 	if (phydev->drv->ack_interrupt)
 		return phydev->drv->ack_interrupt(phydev);
 
 	return 0;
 }
+EXPORT_SYMBOL(phy_clear_interrupt);
 
 /**
  * phy_config_interrupt - configure the PHY device for the requested interrupts
@@ -980,6 +981,7 @@ int phy_disable_interrupts(struct phy_device *phydev)
 	/* Clear the interrupt */
 	return phy_clear_interrupt(phydev);
 }
+EXPORT_SYMBOL(phy_disable_interrupts);
 
 /**
  * phy_interrupt - PHY interrupt handler
@@ -1015,7 +1017,7 @@ static irqreturn_t phy_interrupt(int irq, void *phy_dat)
  * phy_enable_interrupts - Enable the interrupts from the PHY side
  * @phydev: target phy_device struct
  */
-static int phy_enable_interrupts(struct phy_device *phydev)
+int phy_enable_interrupts(struct phy_device *phydev)
 {
 	int err = phy_clear_interrupt(phydev);
 
@@ -1024,6 +1026,7 @@ static int phy_enable_interrupts(struct phy_device *phydev)
 
 	return phy_config_interrupt(phydev, PHY_INTERRUPT_ENABLED);
 }
+EXPORT_SYMBOL(phy_enable_interrupts);
 
 /**
  * phy_request_interrupt - request and enable interrupt for a PHY device
