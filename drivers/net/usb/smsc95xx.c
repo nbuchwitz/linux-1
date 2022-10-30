@@ -599,7 +599,9 @@ static void smsc95xx_mac_update_fullduplex(struct usbnet *dev)
 
 	ret = smsc95xx_write_reg(dev, MAC_CR, pdata->mac_cr);
 	if (ret < 0) {
-		netdev_warn(dev->net, "Error updating MAC full duplex mode\n");
+		if (ret != -ENODEV)
+			netdev_warn(dev->net,
+				    "Error updating MAC full duplex mode\n");
 		return;
 	}
 

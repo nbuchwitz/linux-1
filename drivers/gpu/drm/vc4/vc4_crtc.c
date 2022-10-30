@@ -333,8 +333,8 @@ static void vc4_crtc_config_pv(struct drm_crtc *crtc, struct drm_encoder *encode
 	bool is_dsi = (vc4_encoder->type == VC4_ENCODER_TYPE_DSI0 ||
 		       vc4_encoder->type == VC4_ENCODER_TYPE_DSI1);
 	bool is_dsi1 = vc4_encoder->type == VC4_ENCODER_TYPE_DSI1;
-	bool is_vec = vc4_encoder->type == VC4_ENCODER_TYPE_VEC;
 	u32 format = is_dsi1 ? PV_CONTROL_FORMAT_DSIV_24 : PV_CONTROL_FORMAT_24;
+	bool is_vec = vc4_encoder->type == VC4_ENCODER_TYPE_VEC;
 	u8 ppc = pv_data->pixels_per_clock;
 
 	u16 vert_bp = mode->crtc_vtotal - mode->crtc_vsync_end;
