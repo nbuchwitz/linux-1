@@ -91,6 +91,9 @@ static char *macaddr = ":";
 module_param(macaddr, charp, 0);
 MODULE_PARM_DESC(macaddr, "MAC address");
 
+static u64 last_macaddr;
+static DEFINE_MUTEX(macaddr_lock);
+
 static int __must_check smsc95xx_read_reg(struct usbnet *dev, u32 index,
 					  u32 *data)
 {
@@ -817,18 +820,36 @@ static int smsc95xx_macaddr_param(struct usbnet *dev, struct net_device *nd)
 	u8 mtbl[ETH_ALEN];
 	int j;
 
-	j = sscanf(macaddr, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &mtbl[0], &mtbl[1],
-		   &mtbl[2], &mtbl[3], &mtbl[4], &mtbl[5]);
+	mutex_lock(&macaddr_lock);
 
-	if (j == ETH_ALEN) {
-		netif_dbg(dev, ifup, dev->net, "Overriding MAC address with: "
-			  "%02x:%02x:%02x:%02x:%02x:%02x\n", mtbl[0], mtbl[1],
-			  mtbl[2], mtbl[3], mtbl[4], mtbl[5]);
-		dev_addr_mod(nd, 0, mtbl, ETH_ALEN);
-		return 0;
-	} else {
-		return -EINVAL;
+	/* First smsc95xx device probed gets address from command line */
+	if (!last_macaddr) {
+		j = sscanf(macaddr, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &mtbl[0],
+			   &mtbl[1], &mtbl[2], &mtbl[3], &mtbl[4], &mtbl[5]);
+		if (j != ETH_ALEN) {
+			mutex_unlock(&macaddr_lock);
+			return -EINVAL;
+		}
+
+		last_macaddr = ether_addr_to_u64(mtbl);
+		goto out;
 	}
+
+	/* Can the non-OUI portion of the address be incremented? */
+	if ((last_macaddr & 0xffffff) == 0xffffff) {
+		mutex_unlock(&macaddr_lock);
+		return -EOVERFLOW;
+	}
+
+	/* Additional smsc95xx devices each increase address by 1 */
+	u64_to_ether_addr(++last_macaddr, mtbl);
+out:
+	mutex_unlock(&macaddr_lock);
+	netif_dbg(dev, ifup, dev->net, "Overriding MAC address with: "
+		  "%02x:%02x:%02x:%02x:%02x:%02x\n", mtbl[0], mtbl[1],
+		  mtbl[2], mtbl[3], mtbl[4], mtbl[5]);
+	dev_addr_mod(nd, 0, mtbl, ETH_ALEN);
+	return 0;
 }
 
 static void smsc95xx_init_mac_address(struct usbnet *dev)
