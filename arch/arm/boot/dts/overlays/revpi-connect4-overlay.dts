@@ -321,7 +321,7 @@
 	};
 
 	/* PHY1 (SoC Ethernet) */
-	fragment@8 {
+	fragment@9 {
 		target = <&phy1>;
 		__overlay__ {
 			/* Link Speed/Activity */
