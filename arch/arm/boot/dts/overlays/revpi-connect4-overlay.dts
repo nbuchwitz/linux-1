@@ -328,4 +328,22 @@
 			led-modes = <0x08 0x00>;
 		};
 	};
+
+	/* Disable internal antenna by default */
+	fragment@10 {
+		target = <&ant1>;
+		__overlay__ {
+			/delete-property/ output-high;
+			output-low;
+		};
+	};
+
+	/* Enable external antenna by default */
+	fragment@11 {
+		target = <&ant2>;
+		__overlay__ {
+			/delete-property/ output-low;
+			output-high;
+		};
+	};
 };
