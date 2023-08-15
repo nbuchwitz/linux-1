@@ -100,4 +100,4 @@ jobs:
       with:
         name: ${{matrix.name}}_build
         path: ${{matrix.name}}_build.tar
-        retention-days: 90
+        retention-days: 7
