@@ -568,6 +568,7 @@ static int pcf2127_probe(struct device *dev, struct regmap *regmap,
 			 int alarm_irq, const char *name, bool is_pcf2127)
 {
 	struct pcf2127 *pcf2127;
+	bool ts_off = true;
 	int ret = 0;
 	unsigned int val;
 
@@ -685,6 +686,7 @@ static int pcf2127_probe(struct device *dev, struct regmap *regmap,
 	ret = regmap_update_bits(pcf2127->regmap, PCF2127_REG_TS_CTRL,
 				 PCF2127_BIT_TS_CTRL_TSOFF |
 				 PCF2127_BIT_TS_CTRL_TSM,
+				 ts_off ? PCF2127_BIT_TS_CTRL_TSOFF : 0 |
 				 PCF2127_BIT_TS_CTRL_TSM);
 	if (ret) {
 		dev_err(dev, "%s: tamper detection config (ts_ctrl) failed\n",
@@ -692,25 +694,38 @@ static int pcf2127_probe(struct device *dev, struct regmap *regmap,
 		return ret;
 	}
 
-	/*
-	 * Enable interrupt generation when TSF1 or TSF2 timestamp flags
-	 * are set. Interrupt signal is an open-drain output and can be
-	 * left floating if unused.
-	 */
-	ret = regmap_update_bits(pcf2127->regmap, PCF2127_REG_CTRL2,
-				 PCF2127_BIT_CTRL2_TSIE,
-				 PCF2127_BIT_CTRL2_TSIE);
-	if (ret) {
-		dev_err(dev, "%s: tamper detection config (ctrl2) failed\n",
-			__func__);
-		return ret;
-	}
+	if (ts_off) {
+		/* Clear timestamping interrupt flags */
+		ret = regmap_clear_bits(pcf2127->regmap, PCF2127_REG_CTRL1,
+					PCF2127_BIT_CTRL1_TSF1);
+		if (ret)
+			return ret;
 
-	ret = rtc_add_group(pcf2127->rtc, &pcf2127_attr_group);
-	if (ret) {
-		dev_err(dev, "%s: tamper sysfs registering failed\n",
-			__func__);
-		return ret;
+		ret = regmap_clear_bits(pcf2127->regmap, PCF2127_REG_CTRL2,
+					PCF2127_BIT_CTRL2_TSF2);
+		if (ret)
+			return ret;
+	} else {
+		/*
+		 * Enable interrupt generation when TSF1 or TSF2 timestamp flags
+		 * are set. Interrupt signal is an open-drain output and can be
+		 * left floating if unused.
+		 */
+		ret = regmap_update_bits(pcf2127->regmap, PCF2127_REG_CTRL2,
+					 PCF2127_BIT_CTRL2_TSIE,
+					 PCF2127_BIT_CTRL2_TSIE);
+		if (ret) {
+			dev_err(dev, "%s: tamper detection config (ctrl2) failed\n",
+				__func__);
+			return ret;
+		}
+
+		ret = rtc_add_group(pcf2127->rtc, &pcf2127_attr_group);
+		if (ret) {
+			dev_err(dev, "%s: tamper sysfs registering failed\n",
+				__func__);
+			return ret;
+		}
 	}
 
 	return rtc_register_device(pcf2127->rtc);
