@@ -1,0 +1,75 @@
+# prevent duplicate runs for MR and branch pipelines
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+stages:
+  - test
+  - build
+
+checkpatch:
+  stage: test
+  image: debian:bullseye-slim
+  tags:
+    - self-hosted
+    - host-arm64
+  before_script:
+    # install dependencies
+    - apt-get update
+    - apt-get install --no-install-recommends -y curl jq ca-certificates codespell libcolor-ansi-util-perl git
+  script:
+    # fetch commit list from gitlab API
+    - COMMITS=$(curl -sL "http://gitlab.com/api/v4/projects/$CI_PROJECT_ID/merge_requests/${CI_MERGE_REQUEST_IID}/commits"  | jq -r '.[].id')
+    # run checkpatch on each commit
+    - RC=0
+    - >
+      for commit in $COMMITS; do
+        echo -e "\e[0Ksection_start:`date +%s`:${commit}\r\e[0KCOMMIT ${commit}"
+        ./scripts/checkpatch.pl --ignore FILE_PATH_CHANGES --color=never --codespell --git "${commit}" || RC=1
+        echo -e "\e[0Ksection_end:`date +%s`:${commit}\r\e[0K"
+      done
+    # let job fail, if at least one commit has errors
+    - exit $RC
+
+build-kernel:
+  stage: build
+  image:
+    # remember to enable project token access in CI/CD settings of infrastructure/docker-images/build-kernel:latest
+    name: $CI_REGISTRY/revolutionpi/infrastructure/docker-images/build-kernel:latest
+    # run CI script instead of container's default entrypoint script
+    entrypoint: [""]
+  tags:
+    - self-hosted
+    - host-amd64
+    - docker
+  variables:
+    BUILD_NUMBER: $CI_PIPELINE_IID
+    # shallow clone
+    GIT_DEPTH: 1
+  before_script:
+    - ln -s ${PWD} /build/linux
+  script:
+    - /entrypoint.sh
+  after_script:
+    # gitlab cannot upload artifacts outside of the project folder, so lets move them back ...
+    - mv /output/*.deb .
+  artifacts:
+    paths:
+      - "*.deb"
+  # dont wait for other stages to be finished
+  needs: []
+  rules:
+    # build packages on successful merge
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+      when: always
+    # build packages on demand in MR
+    - when: manual
+  # make snapshot builds optional. Otherwise the pipeline status
+  # is not shown correctly in MR and overview (pipeline needs manual intervention = grey)
+  allow_failure: true
+  parallel:
+    matrix:
+      - ARCH: [arm, arm64]
