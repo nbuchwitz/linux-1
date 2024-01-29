@@ -33,6 +33,8 @@ checkpatch:
       done
     # let job fail, if at least one commit has errors
     - exit $RC
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
 build-kernel:
   stage: build
