@@ -46,7 +46,7 @@ build-kernel:
     entrypoint: [""]
   tags:
     - self-hosted
-    - host-amd64
+    - host-arm64
     - docker
   variables:
     BUILD_NUMBER: $CI_PIPELINE_IID
