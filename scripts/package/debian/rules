@@ -54,6 +54,7 @@ define binary
 		$(Q)dh_strip $(DH_OPTIONS) --no-automatic-dbgsym)
 	$(Q)dh_installdocs $(DH_OPTIONS)
 	$(Q)dh_installchangelogs $(DH_OPTIONS)
+	$(Q)dh_lintian $(DH_OPTIONS)
 	$(Q)dh_compress $(DH_OPTIONS)
 	$(Q)dh_fixperms $(DH_OPTIONS)
 	$(Q)dh_shlibdeps $(DH_OPTIONS)
