@@ -15,7 +15,7 @@ mkdir -p "${destdir}"
 	cd "${srctree}"
 	echo Makefile
 	find "arch/${SRCARCH}" -maxdepth 1 -name 'Makefile*'
-	find include scripts -type f -o -type l
+	find include scripts \( -type f -o -type l \) ! -name ".gitignore"
 	find "arch/${SRCARCH}" -name Kbuild.platforms -o -name Platform
 	find "arch/${SRCARCH}" -name include -type d
 ) | tar -c -f - -C "${srctree}" -T - | tar -xf - -C "${destdir}"
@@ -25,7 +25,8 @@ mkdir -p "${destdir}"
 		echo tools/objtool/objtool
 	fi
 
-	find "arch/${SRCARCH}/include" Module.symvers include scripts -type f
+	find "arch/${SRCARCH}/include" Module.symvers include scripts \
+		-type f ! -name ".gitignore"
 
 	if is_enabled CONFIG_GCC_PLUGINS; then
 		find scripts/gcc-plugins -name '*.so'
