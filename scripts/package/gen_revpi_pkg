@@ -172,6 +172,11 @@ linux_lintian_name_common="${mainline_vers%.*}".0-revpi"${revpi_vers}"-rpi-v8
 linux_image_dbg_lintian=debian/linux-image-"${linux_lintian_name_common}"-dbg.lintian-overrides
 linux_headers_lintian=debian/linux-headers-"${linux_lintian_name_common}".lintian-overrides
 
+cat <<- __EOF__ >> "$LINTIAN_OVERRIDES_FILE"
+linux-revpi-v8 source: dbg-package-missing-depends \
+linux-image-$linux_lintian_name_common-dbg
+__EOF__
+
 # make sure no overrides for possibly old versions are present
 rm -f debian/*.lintian-overrides
 for file in \
