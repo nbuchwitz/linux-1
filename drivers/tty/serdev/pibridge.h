@@ -4,6 +4,7 @@
 #include <linux/types.h>
 
 #define PIBRIDGE_RECV_FIFO_SIZE		128
+#define PIBRIDGE_IO_CMD_ERR		7
 
 struct pibridge_pkthdr_gate {
 	u8	dst;

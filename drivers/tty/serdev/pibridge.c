@@ -497,6 +497,13 @@ int pibridge_req_io(u8 addr, u8 cmd, void *snd_buf, u8 snd_len, void *rcv_buf,
 		return -EBADMSG;
 	}
 
+	if (pkthdr.cmd == PIBRIDGE_IO_CMD_ERR) {
+		// TODO: retrieve and print error code
+		dev_warn_ratelimited(&pibridge_s->serdev->dev,
+			"got error frame from module\n");
+		return -EIO;
+	}
+
 	return to_receive;
 }
 EXPORT_SYMBOL(pibridge_req_io);
